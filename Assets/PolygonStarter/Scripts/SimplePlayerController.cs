@@ -5,18 +5,22 @@ using UnityEngine;
 public class SimplePlayerController : MonoBehaviour
 {
     public float moveSpeed = 5f;
+    public float rotationSmoothTime = 0.1f;
     public float jumpForce = 5f;
-    public float rotationSpeed = 10f;
     private Rigidbody rb;
     private Animator animator;
     private bool isGrounded;
 
-    public Transform cameraTransform;
+    private float turnSmoothVelocity;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-        animator =GetComponent<Animator>();
+        animator = GetComponent<Animator>();
+
+        //Bloquear mouse
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     public void Update()
@@ -28,28 +32,39 @@ public class SimplePlayerController : MonoBehaviour
     private void Move()
     {
         // Movimiento WASD
-        float horizontal = Input.GetAxis("Horizontal");
-        float vertical = Input.GetAxis("Vertical");
+        float horizontal = Input.GetAxisRaw("Horizontal");
+        float vertical = Input.GetAxisRaw("Vertical");
 
-        Vector3 direction = new Vector3(horizontal, 0, vertical).normalized;
+        Vector3 inputDirection = new Vector3(horizontal, 0, vertical).normalized;
 
-        if (direction.magnitude >= 0.1f)
+        if (inputDirection.magnitude >= 0.1f)
         {
-            // Calculamos el ángulo basado en la cámara
-            float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg + cameraTransform.eulerAngles.y;
+            // 2) Obtener rotación real de la Main Camera
+            Transform cam = Camera.main.transform;
+            Vector3 camForward = cam.forward;
+            Vector3 camRight   = cam.right;
+            camForward.y = 0f;   // descartamos inclinación vertical
+            camRight.y   = 0f;
+            camForward.Normalize();
+            camRight.Normalize();
 
-            // Suavizamos el giro
-            float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, rotationSpeed * Time.deltaTime);
+            // 3) Dirección de movimiento RELATIVA a la cámara
+            Vector3 moveDir = camForward * vertical + camRight * horizontal;
+            moveDir.Normalize();
 
-            // Rotamos al personaje
+            // 4) Rotación suave hacia moveDir
+            float targetAngle = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
+            float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle,
+                                                ref turnSmoothVelocity,
+                                                rotationSmoothTime);
             transform.rotation = Quaternion.Euler(0f, angle, 0f);
 
-            // Movemos en dirección de la cámara
-            Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
-            transform.position += moveDir.normalized * moveSpeed * Time.deltaTime;
+            // 5) Mover personaje
+            Vector3 displacement = moveDir * moveSpeed * Time.deltaTime;
+            rb.MovePosition(rb.position + displacement);
 
-            // Actualizar animador (si tienes parámetros como Speed)
-            animator.SetFloat("Speed", direction.magnitude);
+            // 6) Animación
+            animator.SetFloat("Speed", 1f);
         }
         else
         {
@@ -57,8 +72,6 @@ public class SimplePlayerController : MonoBehaviour
         }
 
     }
-
-    private float turnSmoothVelocity;
 
     private void Jump()
     {
