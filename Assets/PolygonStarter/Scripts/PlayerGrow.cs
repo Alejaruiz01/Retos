@@ -11,6 +11,9 @@ public class PlayerGrow : MonoBehaviour
     private bool isBig = false;
     private Coroutine growCoroutine;
 
+    public AudioClip powerUpSound;  // <<--- NUEVO
+    public AudioSource audioSource; // <<--- NUEVO
+
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Mushroom"))
@@ -20,6 +23,13 @@ public class PlayerGrow : MonoBehaviour
                 StopCoroutine(growCoroutine);
             }
             growCoroutine = StartCoroutine(GrowTemporarily());
+
+            // Reproducir sonido de power-up
+            if (powerUpSound != null)
+            {
+                audioSource.PlayOneShot(powerUpSound);
+            }
+
             Destroy(other.gameObject); // eliminar el hongo después de tocarlo
         }
     }

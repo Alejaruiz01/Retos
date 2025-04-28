@@ -7,6 +7,14 @@ public class CarResetOnEnter : MonoBehaviour
     [Tooltip("Referencia al punto de respawn")]
     public Transform spawnPoint;
 
+    public AudioClip teleportSound;
+    public AudioSource audioSource;
+
+    private void Start()
+    {
+        audioSource = GetComponent<AudioSource>();
+    }
+
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
@@ -18,6 +26,11 @@ public class CarResetOnEnter : MonoBehaviour
             // Opcional: restablece también velocidad
             Rigidbody rb = other.GetComponent<Rigidbody>();
             if (rb != null) rb.velocity = Vector3.zero;
+
+            if (teleportSound != null)
+            {
+                audioSource.PlayOneShot(teleportSound);
+            }
         }
     }
 }
