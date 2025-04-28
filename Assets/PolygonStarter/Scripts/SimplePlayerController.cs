@@ -75,12 +75,44 @@ public class SimplePlayerController : MonoBehaviour
 
     private void Jump()
     {
-        // Saltar
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
-            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+            float currentSpeed = animator.GetFloat("Speed");
+            isGrounded = false;
+            animator.SetBool("IsGrounded", false);
+
+            if (currentSpeed > 0.05f)
+            {
+                // Personaje está moviéndose → Salto en movimiento
+                animator.SetTrigger("JumpMove"); // Asegúrate de tener este Trigger en el Animator
+
+                // Añadimos impulso extra porque la animación no sube tanto
+                rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+            }
+            else
+            {
+                // Personaje está quieto → Salto desde idle
+                animator.SetTrigger("JumpIdle"); // Asegúrate de tener este Trigger en el Animator
+                rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+            }
+
             isGrounded = false;
         }
+
+        // Saltar
+        // if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
+        // {
+        //     rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+        //     isGrounded = false;
+
+        //     animator.SetBool("IsJumping", true);
+        //     animator.SetBool("IsJumpingIdle", true);
+        // }
+        //     else
+        //     {
+        //         animator.SetBool("IsJumping", false);
+        //         animator.SetBool("IsJumpingIdle", false);
+        //     }
     }
 
     void OnCollisionEnter(Collision collision)
@@ -89,6 +121,7 @@ public class SimplePlayerController : MonoBehaviour
         if (collision.gameObject.CompareTag("Ground"))
         {
             isGrounded = true;
+            animator.SetBool("IsGrounded", true);
         }
     }
 }
