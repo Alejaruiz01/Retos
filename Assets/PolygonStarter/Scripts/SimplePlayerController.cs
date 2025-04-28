@@ -7,6 +7,7 @@ public class SimplePlayerController : MonoBehaviour
     public float moveSpeed = 5f;
     public float rotationSmoothTime = 0.1f;
     public float jumpForce = 5f;
+    public float maxClimbAngle = 45f;
     private Rigidbody rb;
     private Animator animator;
     private bool isGrounded;
@@ -27,6 +28,10 @@ public class SimplePlayerController : MonoBehaviour
     {
         Move();
         Jump();
+
+        // Detectar caída
+        bool falling = !isGrounded && rb.velocity.y < -0.1f;
+        animator.SetBool("IsFalling", falling);
     }
 
     private void Move()
@@ -58,6 +63,23 @@ public class SimplePlayerController : MonoBehaviour
                                                 ref turnSmoothVelocity,
                                                 rotationSmoothTime);
             transform.rotation = Quaternion.Euler(0f, angle, 0f);
+
+            //  --- corregir para pendientes ---
+            RaycastHit hit;
+            float rayDistance = 1.1f; // ajusta según mitad de altura del collider
+            if (Physics.Raycast(transform.position, Vector3.down, out hit, rayDistance) && hit.collider.CompareTag("Ground"))
+                {
+                    float slopeAngle = Vector3.Angle(hit.normal, Vector3.up);
+                    // Proyectamos sobre la pendiente siempre
+                    moveDir = Vector3.ProjectOnPlane(moveDir, hit.normal).normalized;
+
+                    // Si la pendiente es muy empinada, cancelamos la gravedad
+                    if (slopeAngle >= maxClimbAngle)
+                    {
+                        // Esto añade una aceleración hacia arriba igual a la gravedad
+                        rb.AddForce(-Physics.gravity, ForceMode.Acceleration);
+                    }
+                }
 
             // 5) Mover personaje
             Vector3 displacement = moveDir * moveSpeed * Time.deltaTime;
@@ -98,27 +120,12 @@ public class SimplePlayerController : MonoBehaviour
 
             isGrounded = false;
         }
-
-        // Saltar
-        // if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
-        // {
-        //     rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-        //     isGrounded = false;
-
-        //     animator.SetBool("IsJumping", true);
-        //     animator.SetBool("IsJumpingIdle", true);
-        // }
-        //     else
-        //     {
-        //         animator.SetBool("IsJumping", false);
-        //         animator.SetBool("IsJumpingIdle", false);
-        //     }
     }
 
     void OnCollisionEnter(Collision collision)
     {
         // Detecta si toca el suelo para permitir saltar de nuevo
-        if (collision.gameObject.CompareTag("Ground"))
+        if (collision.gameObject.CompareTag("Ground") || collision.gameObject.CompareTag("Car"))
         {
             isGrounded = true;
             animator.SetBool("IsGrounded", true);
