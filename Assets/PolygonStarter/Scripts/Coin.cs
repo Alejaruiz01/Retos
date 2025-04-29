@@ -11,7 +11,7 @@ public class Coin : MonoBehaviour
         // Buscar el GameManager en la escena
         coinManager = FindObjectOfType<CoinManager>();
     }
-    // Este método se llama cuando el jugador toca la moneda
+    // Este mÃ©todo se llama cuando el jugador toca la moneda
     void OnTriggerEnter(Collider other)
     {
         // Verifica si el objeto con el que colisiona es el jugador
@@ -29,7 +29,7 @@ public class Coin : MonoBehaviour
                 coinManager.CoinCollected();
             }
 
-            // Destruir la moneda (después de un pequeño retraso si quieres que suene completo el audio)
+            // Destruir la moneda (despuÃ©s de un pequeÃ±o retraso si quieres que suene completo el audio)
             Destroy(gameObject);
         }
     }
