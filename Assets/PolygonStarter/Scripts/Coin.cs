@@ -25,7 +25,7 @@ public class Coin : MonoBehaviour
 
             if (coinSound != null)
             {
-                AudioSource.PlayClipAtPoint(coinSound.clip, transform.position);
+                AudioSource.PlayClipAtPoint(coinSound.clip, transform.position, 0.2f);
             }
             Destroy(gameObject);
 
@@ -38,4 +38,3 @@ public class Coin : MonoBehaviour
         }
     }
 }
-
