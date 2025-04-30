@@ -5,6 +5,7 @@ public class Coin : MonoBehaviour
     public int points = 10; // Puntos que se otorgan al recolectar la moneda
     public ScoreManager scoreManager; // Referencia al script ScoreManager
     private CoinManager coinManager;
+    public AudioSource coinSound;
 
     void Start()
     {
@@ -17,20 +18,23 @@ public class Coin : MonoBehaviour
         // Verifica si el objeto con el que colisiona es el jugador
         if (other.CompareTag("Player"))
         {
-            // Sumar los puntos
             if (scoreManager != null)
             {
                 scoreManager.AddPoints(points);
             }
 
-            // Avisar al CoinManager que una moneda fue recogida
+            if (coinSound != null)
+            {
+                AudioSource.PlayClipAtPoint(coinSound.clip, transform.position);
+            }
+            Destroy(gameObject);
+
+
             if (coinManager != null)
             {
                 coinManager.CoinCollected();
             }
 
-            // Destruir la moneda (después de un pequeño retraso si quieres que suene completo el audio)
-            Destroy(gameObject);
         }
     }
 }
