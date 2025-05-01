@@ -4,128 +4,120 @@ using UnityEngine;
 
 public class SimplePlayerController : MonoBehaviour
 {
+    [Header("Movimiento")]
     public float moveSpeed = 5f;
     public float rotationSmoothTime = 0.1f;
-    public float jumpForce = 5f;
     public float maxClimbAngle = 45f;
+
+    [Header("Salto")]
+    public float jumpForce = 5f;
+
     private Rigidbody rb;
     private Animator animator;
     private bool isGrounded;
-
     private float turnSmoothVelocity;
+
+    // **Aquí guardamos la dirección que calculamos en Update()
+    private Vector3 cachedMoveDir;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         animator = GetComponent<Animator>();
 
-        //Bloquear mouse
+        // Interpolación activada para suavizar entre pasos de física
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+
         Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        Cursor.visible     = false;
     }
 
-    public void Update()
+    void Update()
     {
-        Move();
-        Jump();
-
-        // Detectar caída
-        bool falling = !isGrounded && rb.velocity.y < -0.1f;
-        animator.SetBool("IsFalling", falling);
+        ReadInputAndRotate();
+        HandleJump();
+        HandleFallingAnim();
     }
 
-    private void Move()
+    // FixedUpdate se llama justo antes de que la física se procese
+    void FixedUpdate()
     {
-        // Movimiento WASD
-        float horizontal = Input.GetAxisRaw("Horizontal");
-        float vertical = Input.GetAxisRaw("Vertical");
+        ApplyMovement();
+    }
 
-        Vector3 inputDirection = new Vector3(horizontal, 0, vertical).normalized;
+    private void ReadInputAndRotate()
+    {
+        float h = Input.GetAxisRaw("Horizontal");
+        float v = Input.GetAxisRaw("Vertical");
+        Vector3 input = new Vector3(h, 0, v).normalized;
 
-        if (inputDirection.magnitude >= 0.1f)
+        if (input.magnitude >= 0.1f)
         {
-            // 2) Obtener rotación real de la Main Camera
+            // Cámara real
             Transform cam = Camera.main.transform;
-            Vector3 camForward = cam.forward;
-            Vector3 camRight   = cam.right;
-            camForward.y = 0f;   // descartamos inclinación vertical
-            camRight.y   = 0f;
-            camForward.Normalize();
-            camRight.Normalize();
+            Vector3 camF = cam.forward; camF.y = 0; camF.Normalize();
+            Vector3 camR = cam.right;   camR.y = 0; camR.Normalize();
 
-            // 3) Dirección de movimiento RELATIVA a la cámara
-            Vector3 moveDir = camForward * vertical + camRight * horizontal;
-            moveDir.Normalize();
+            // Guardamos para usar en FixedUpdate()
+            cachedMoveDir = (camF * v + camR * h).normalized;
 
-            // 4) Rotación suave hacia moveDir
-            float targetAngle = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
+            // Rotación suave (queda en Update para seguir el ratón)
+            float targetAngle = Mathf.Atan2(cachedMoveDir.x, cachedMoveDir.z) * Mathf.Rad2Deg;
             float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle,
                                                 ref turnSmoothVelocity,
                                                 rotationSmoothTime);
             transform.rotation = Quaternion.Euler(0f, angle, 0f);
 
-            //  --- corregir para pendientes ---
-            RaycastHit hit;
-            float rayDistance = 1.1f; // ajusta según mitad de altura del collider
-            if (Physics.Raycast(transform.position, Vector3.down, out hit, rayDistance) && hit.collider.CompareTag("Ground"))
-                {
-                    float slopeAngle = Vector3.Angle(hit.normal, Vector3.up);
-                    // Proyectamos sobre la pendiente siempre
-                    moveDir = Vector3.ProjectOnPlane(moveDir, hit.normal).normalized;
-
-                    // Si la pendiente es muy empinada, cancelamos la gravedad
-                    if (slopeAngle >= maxClimbAngle)
-                    {
-                        // Esto añade una aceleración hacia arriba igual a la gravedad
-                        rb.AddForce(-Physics.gravity, ForceMode.Acceleration);
-                    }
-                }
-
-            // 5) Mover personaje
-            Vector3 displacement = moveDir * moveSpeed * Time.deltaTime;
-            rb.MovePosition(rb.position + displacement);
-
-            // 6) Animación
             animator.SetFloat("Speed", 1f);
         }
         else
         {
+            cachedMoveDir = Vector3.zero;
             animator.SetFloat("Speed", 0f);
         }
-
     }
 
-    private void Jump()
+    private void ApplyMovement()
+    {
+        Vector3 moveDir = cachedMoveDir;
+
+        // Ajuste de pendientes (igual que antes)
+        if (moveDir.magnitude > 0.1f)
+        {
+            if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, 1.1f)
+                && hit.collider.CompareTag("Ground"))
+            {
+                float slope = Vector3.Angle(hit.normal, Vector3.up);
+                moveDir = Vector3.ProjectOnPlane(moveDir, hit.normal).normalized;
+                if (slope >= maxClimbAngle)
+                    rb.AddForce(-Physics.gravity, ForceMode.Acceleration);
+            }
+        }
+
+        // Aquí aplicamos el movimiento físico
+        Vector3 displacement = moveDir * moveSpeed * Time.fixedDeltaTime;
+        rb.MovePosition(rb.position + displacement);
+    }
+
+    private void HandleJump()
     {
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
-            float currentSpeed = animator.GetFloat("Speed");
+            animator.SetTrigger(animator.GetFloat("Speed") > 0.1f ? "JumpMove" : "JumpIdle");
             isGrounded = false;
-            animator.SetBool("IsGrounded", false);
-
-            if (currentSpeed > 0.05f)
-            {
-                // Personaje está moviéndose → Salto en movimiento
-                animator.SetTrigger("JumpMove"); // Asegúrate de tener este Trigger en el Animator
-
-                // Añadimos impulso extra porque la animación no sube tanto
-                rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-            }
-            else
-            {
-                // Personaje está quieto → Salto desde idle
-                animator.SetTrigger("JumpIdle"); // Asegúrate de tener este Trigger en el Animator
-                rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-            }
-
-            isGrounded = false;
+            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
         }
     }
 
-    void OnCollisionEnter(Collision collision)
+    private void HandleFallingAnim()
     {
-        // Detecta si toca el suelo para permitir saltar de nuevo
-        if (collision.gameObject.CompareTag("Ground") || collision.gameObject.CompareTag("Car"))
+        bool falling = !isGrounded && rb.velocity.y < -0.1f;
+        animator.SetBool("IsFalling", falling);
+    }
+
+    void OnCollisionEnter(Collision col)
+    {
+        if (col.gameObject.CompareTag("Ground") || col.gameObject.CompareTag("Car"))
         {
             isGrounded = true;
             animator.SetBool("IsGrounded", true);

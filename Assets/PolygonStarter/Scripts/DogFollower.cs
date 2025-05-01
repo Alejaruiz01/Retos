@@ -44,9 +44,14 @@ public class DogFollower : MonoBehaviour
 
         float dist = Vector3.Distance(transform.position, player.position);
 
+        // Calcula la posición objetivo desplazada a la derecha
+        Vector3 rightOffset = player.right * 1.5f;   // 2 unidades a la derecha
+        Vector3 forwardOffset = player.forward * 0.9f; // (opcional) 1 unidad hacia adelante
+        Vector3 targetPos = player.position + rightOffset + forwardOffset;
+
         // 1) Movimiento
         if (dist > followDistance)
-            agent.SetDestination(player.position);
+            agent.SetDestination(targetPos);
         else
             agent.ResetPath();
 
