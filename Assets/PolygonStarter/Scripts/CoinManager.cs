@@ -1,10 +1,12 @@
 using UnityEngine;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 public class CoinManager : MonoBehaviour
 {
     public int totalCoins; // Número total de monedas en la escena
     public TextMeshProUGUI gameOverText; // Texto de "Game Over"
+    public GameObject restartButton;
 
     void Start()
     {
@@ -32,7 +34,6 @@ public class CoinManager : MonoBehaviour
     // Método que muestra el texto de "Game Over"
     void GameOver()
     {
-
         Debug.Log("!Game Over activado!");
 
         if (gameOverText != null)
@@ -40,9 +41,30 @@ public class CoinManager : MonoBehaviour
             gameOverText.gameObject.SetActive(true);
         }
 
-        // (Opcional) Pausar el juego
-        Time.timeScale = 0;
+        if (restartButton != null)
+        {
+            restartButton.SetActive(true); // Asegúrate de hacer esto antes de pausar
+        }
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        Time.timeScale = 0; // <- Pausa el juego después de mostrar todo
+
     }
+
+
+    public void RestartLevel()
+    {
+        Time.timeScale = 1f;
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+
 }
 
 

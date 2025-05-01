@@ -1,10 +1,13 @@
 using UnityEngine;
 using TMPro; // Necesario para usar TextMeshPro
 
+
+
 public class ScoreManager : MonoBehaviour
 {
     public int score = 0; // Variable para almacenar el puntaje
     public TextMeshProUGUI scoreText; // Referencia al objeto de texto de la UI
+    
 
     void Start()
     {
@@ -21,5 +24,6 @@ public class ScoreManager : MonoBehaviour
     {
         scoreText.text = "Puntos: " + score.ToString(); // Muestra los puntos en el texto
     }
+    
 }
 

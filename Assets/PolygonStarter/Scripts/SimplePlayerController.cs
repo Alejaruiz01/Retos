@@ -27,9 +27,7 @@ public class SimplePlayerController : MonoBehaviour
 
         // Interpolación activada para suavizar entre pasos de física
         rb.interpolation = RigidbodyInterpolation.Interpolate;
-
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible     = false;
+              
     }
 
     void Update()
